@@ -69,7 +69,7 @@ public:
         }
     };
 
-    Array(int capacity = 0) :
+    Array(int capacity = 16) :
         capacity(capacity),
         storage(nullptr),
         size(0)
