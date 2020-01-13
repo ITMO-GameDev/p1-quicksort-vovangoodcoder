@@ -1,220 +1,207 @@
-﻿#ifndef H_ARRAY
-#define H_ARRAY
+#pragma once
+#include <assert.h>
 
-#include <iostream>
-#include <iterator>
+using namespace std;
 
-const int INCREMENT_STEP = 2;
+const int DEFAULT_CAPACITY = 8;
+const int CAPACITY_MULTIPLY = 2;
 
 template<typename T>
-class Array
+class Array final
 {
-private:
-    T* storage;
-    int capacity;
-    int size;
-
 public:
-    class Iterator : public std::iterator<std::forward_iterator_tag, T>
-    {
-    private:
-        Array<T>& arr;
-        int it_pos;
-    public:
-        Iterator(Array<T>& arr) : arr(arr), it_pos(0) {}
+	Array();
+	Array(int capacity);
+	Array(const Array& Array);
+	~Array();
 
-        const T& get() const
-        {
-            return this->arr[this->it_pos];
-        }
+	void insert(const T& value);
+	void insert(int index, const T& value);
+	void remove(int index);
+	const T& operator[](int index) const;
+	T& operator[](int index);
+	int size() const;
 
-        void set(const T& value)
-        {
-            this->arr[this->it_pos] = value;
-        }
+	class Iterator {
+	public:
+		Iterator(Array<T>* a);
+		const T& get() const;
+		void set(const T& value);
+		void insert(const T& value);
+		void remove();
+		void next();
+		void prev();
+		void toIndex(int index);
+		bool hasNext() const;
+		bool hasPrev() const;
+	private:
+		int pos;
+		const Array<T>* arr;
+	};
 
-        void insert(const T& value)
-        {
-            this->arr.insert(this->it_pos, value);
-        }
+	Iterator iterator(){ return Iterator(this); }
+	const Iterator iterator() const { return Iterator(this); }
 
-        void remove()
-        {
-            this->arr.remove(this->it_pos);
-        }
+private:
+	T* a;
+	int a_capacity;
+	int real_size;
 
-        void next()
-        {
-            this->it_pos++;
-        }
-
-        void prev()
-        {
-            this->it_pos--;
-        }
-
-        void toIndex(int index)
-        {
-            this->it_pos = index;
-        }
-
-        bool hasNext() const
-        {
-            return (this->it_pos < this->arr.size - 1);
-        }
-
-        bool hasPrev() const
-        {
-            return (this->it_pos > 0);
-        }
-    };
-
-    Array(int capacity = 16) :
-        capacity(capacity),
-        storage(nullptr),
-        size(0)
-    {
-        if (this->capacity != 0)
-            this->storage = new T[capacity];
-        else
-            this->storage = nullptr;
-    }
-
-    ~Array() {
-        delete[] this->storage;
-    }
-
-    Array(const Array& other)
-    {
-        this->storage = new T[other.capacity];
-        std::copy(other.storage,
-            other.storage + other.capacity,
-            this->storage);
-
-        capacity = other.capacity;
-        size = other.size;
-    }
-
-    Array& operator =(const Array& other)
-    {
-        if (&other == this)
-            return *this;
-
-        delete[] this->storage;
-        this->storage = new T[other.capacity];
-
-        std::copy(other.storage,
-            other.storage + other.capacity,
-            this->storage);
-
-        capacity = other.capacity;
-        size = other.size;
-
-        return *this;
-    }
-
-    Array(Array&& other)
-    {
-        this->storage = new T[other.capacity];
-        std::move(other.storage,
-            other.storage + other.capacity,
-            this->storage);
-
-        capacity = other.capacity;
-        size = other.size;
-
-        other.storage = nullptr;
-        other.size = 0;
-    }
-
-
-    Array& operator=(Array&& other)
-    {
-        if (this != &other)
-        {
-            delete[] this->storage;
-            this->storage = new T[other.capacity];
-
-            std::move(other.storage,
-                other.storage + other.capacity,
-                this->storage);
-
-            capacity = other._capacity;
-            size = other.size;
-
-            other.storage = nullptr;
-            other.size = 0;
-        }
-        return *this;
-    }
-
-    void insert(const T& value)
-    {
-        this->insert(this->getSize(), value);
-    }
-
-    void insert(int index, const T& value)
-    {
-        if (this->capacity == this->getSize())
-            this->expandStorage();
-
-        for (int i = this->getSize() - 1; i >= index; i--)
-            this->storage[i + 1] = std::move(this->storage[i]);
-
-        this->storage[index] = std::move(value);
-
-        this->size++;
-    }
-
-    void remove(int index)
-    {
-        for (int i = index; i < this->getSize(); i++)
-            this->storage[i] = std::move(this->storage[i + 1]);
-
-        this->size--;
-    }
-
-    void expandStorage()
-    {
-        T* new_chunk_ptr;
-        if (this->getCapacity() == 0)
-            this->capacity++;
-        this->capacity = this->capacity * INCREMENT_STEP;
-
-        new_chunk_ptr = new T[this->capacity];
-
-        for (int i = 0; i != this->size; i++)
-            new_chunk_ptr[i] = std::move(this->storage[i]);
-
-        this->storage = new_chunk_ptr;
-    }
-
-    int const getCapacity()
-    {
-        return capacity;
-    }
-
-    T& operator[](int index)
-    {
-        return this->storage[index];
-    }
-
-    const T& operator[](int index) const
-    {
-        return std::move(this->storage[index]);
-    }
-
-    int const getSize()
-    {
-        return this->size;
-    }
-
-    const Iterator iterator()
-    {
-        Iterator* it = new Iterator(*this);
-        it->toIndex(0);
-        return *it;
-    }
+	T* getSpace(int cap);
+	void freeSpace(T* arr);
+	void moveAfter(T* arr1, T* arr2, int index, int size);
+	void moveBefore(T* arr1, T* arr2, int index);
+	void moveLeft(T* arr, int index, int size);
 };
 
-#endif
+//public func
+template <typename T> Array <T>::Array()
+{
+	a_capacity = DEFAULT_CAPACITY;
+	a = getSpace(a_capacity);
+	real_size = 0;
+}
+template <typename T> Array <T>::Array(int capacity) 
+{
+	assert(capacity > 0);
+	a_capacity = capacity;
+	a = getSpace(a_capacity);
+	real_size = 0;
+}
+template <typename T> Array <T>::Array(const Array<T>& Arr)
+{
+	a_capacity = Arr.a_capacity;
+	real_size = Arr.real_size;
+
+	a = getSpace(a_capacity);
+	for (int i = 0; i < real_size; i++)
+		a[i] = Arr.a[i];
+}
+template <typename T> Array <T>::~Array() {
+	freeSpace(a);
+}
+
+template <typename T> void Array <T>::insert(const T& value)
+{
+	if (a_capacity > real_size)
+	{
+		a[real_size++] = value;
+	}
+	else
+	{
+		a_capacity = a_capacity * CAPACITY_MULTIPLY;
+		T* new_a = getSpace(a_capacity);
+		moveBefore(a, new_a, real_size);
+		a = new_a;
+		a[real_size++] = value;
+	}
+}
+template <typename T> void Array <T>::insert(int index, const T& value)
+{
+	assert(index >= 0 && index <= real_size);
+	if (a_capacity > real_size)
+	{
+		moveAfter(a, a, index, real_size);
+		a[index] = value;
+		real_size++;
+	}
+	else
+	{
+		a_capacity = a_capacity * CAPACITY_MULTIPLY;
+		T* new_a = getSpace(a_capacity);
+		moveAfter(a, new_a, index, real_size);
+		new_a[index] = value;
+		moveBefore(a, new_a, index);
+		real_size++;
+	}
+}
+template <typename T> void Array <T>::remove(int index)
+{
+	assert(index >= 0 && index < real_size);
+	moveLeft(a, index, real_size);
+	real_size--;
+}
+template <typename T> const T& Array <T>::operator[](int index) const
+{
+	assert(index >= 0 && index < real_size);
+	return a[index];
+}
+template <typename T> T& Array <T>::operator[](int index)
+{
+	assert(index >= 0 && index < real_size);
+	return a[index];
+}
+template <typename T> int Array <T>::size() const {
+	return real_size;
+}
+
+//iterator func
+template <typename T> Array<T>::Iterator::Iterator(Array<T>* a)
+{
+	arr = a;
+	pos = 0;
+}
+template <typename T> const T& Array<T>::Iterator::get() const
+{
+	return arr->a[pos];
+}
+template <typename T> void Array<T>::Iterator::set(const T& value)
+{
+	arr->a[pos] = value;
+}
+template <typename T> void Array<T>::Iterator::insert(const T& value)
+{
+	arr->insert(pos, value);
+}
+template <typename T> void Array<T>::Iterator::remove()
+{
+	arr->remove(pos);
+}
+template <typename T> void Array<T>::Iterator::next()
+{
+	pos++;
+}
+template <typename T> void Array<T>::Iterator::prev()
+{
+	pos--;
+}
+template <typename T> void Array<T>::Iterator::toIndex(int index)
+{
+	pos = index;
+}
+template <typename T> bool Array<T>::Iterator::hasNext() const
+{
+	return pos < arr->size() - 1;
+}
+template <typename T> bool Array<T>::Iterator::hasPrev() const
+{
+	return pos > 0;
+}
+
+//private func
+template <typename T> T* Array <T>::getSpace(int cap) 
+{
+	T* arr = new T[cap];
+	return arr;
+}
+
+template <typename T> void Array <T>::freeSpace(T* arr)
+{
+	delete []arr;
+}
+
+template <typename T> void Array <T>::moveAfter(T* arr1, T* arr2, int index, int size)
+{
+	for (int i = size; i >= index; i--)
+		arr2[i] = std::move(arr1[i - 1]);
+}
+template <typename T> void Array <T>::moveBefore(T* arr1, T* arr2, int index)
+{
+	for (int i = 0; i < index; i++)
+		arr2[i] = std::move(arr1[i]);
+}
+template <typename T> void Array <T>::moveLeft(T* arr, int index, int size)
+{
+	for (int i = index; i < size; i++)
+		arr[i] = std::move(arr[i+1]);
+}
